@@ -17,7 +17,6 @@ warnings.filterwarnings(
 
 from gym.envs.registration import register
 
-import universe.scoreboard
 import universe.configuration
 from universe import error, envs
 from universe.remotes import docker_remote
@@ -26,7 +25,7 @@ from universe.runtimes.registration import runtime_spec
 
 __all__ = [
     'configuration', 'envs', 'error', 'kube', 'pyprofile', 'remotes', 'rewarder', 'runtimes',
-    'scoreboard', 'spaces', 'twisty', 'utils', 'vectorized', 'vncdriver', 'wrappers',
+    'spaces', 'twisty', 'utils', 'vectorized', 'vncdriver', 'wrappers',
     'configure_logging', 'docker_image', 'enable_logfile',
     'logger', 'extra_logger']
 
@@ -169,6 +168,21 @@ register(
     },
     kwargs={
         'gym_core_id': 'CartPole-v0',
+    },
+    trials=2,
+)
+
+register(
+    id='gym-core.LunarLanderFixed-v2',
+    entry_point='universe.wrappers:WrappedGymCoreEnv',
+    max_episode_steps=1000,
+    tags={
+        'vnc': True,
+        'runtime': 'gym-core',
+        'metadata_encoding': metadata_pixels,
+    },
+    kwargs={
+        'gym_core_id': 'LunarLanderFixed-v2',
     },
     trials=2,
 )

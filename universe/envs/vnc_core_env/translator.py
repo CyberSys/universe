@@ -122,3 +122,39 @@ class CartPoleTranslator(object):
             return [key.LEFT]
         else:
             return []
+
+class LunarLanderTranslator(object):
+    _all_keysyms = [key.UP, key.DOWN, key.LEFT, key.RIGHT]
+
+    def __init__(self, env):
+        pass
+
+    def keysyms_to_vnc_actions(self, keysyms):
+        actions = []
+        keysyms = set(keysyms)
+        for keysym in self._all_keysyms:
+            down = keysym in keysyms
+            actions.append(spaces.KeyEvent(keysym, down=down))
+        return actions
+
+    def keysyms_to_index(self, keys):
+        if key.RIGHT in keys:
+            return 1
+        elif key.LEFT in keys:
+            return 3
+        elif key.DOWN in keys:
+            return 2
+        else:
+            return 0
+
+    def index_to_keysyms(self, i):
+        if i == 0:
+            return [key.UP]
+        elif i == 1:
+            return [key.RIGHT]
+        elif i == 2:
+            return [key.DOWN]
+        elif i == 3:
+            return [key.LEFT]
+        else:
+            return []
