@@ -35,7 +35,13 @@ class RewarderProtocol(websocket.WebSocketServerProtocol):
 
         self._message_id = 0
         self._request = request
-        self._observer = request.headers.get('openai-observer') == 'true'
+        self._observer = (
+            request.headers.get('openai-observer') == 'true'
+            or (
+                request.params.get('openai-observer')
+                and request.params.get('openai-observer')[0] == 'true'
+            )
+        )
         self.password = password
 
         logger.info('Client connecting: peer=%s observer=%s', request.peer, self._observer)
@@ -43,6 +49,18 @@ class RewarderProtocol(websocket.WebSocketServerProtocol):
     def authenticate(self, request):
         # Ugly, but it'll have to do for now.
         authorization = request.headers.get('authorization')
+
+        # Simple password handling for JS clients.
+        if authorization is None:
+            password = request.params.get('password')
+            if password is not None and password:
+                password = password[0]
+                if password != self.password:
+                    logger.info('REJECT REASON: Invalid password: %r (%s expected; %s)', password, self.password, request.params)
+                    self.reject('Invalid password: {!r}'.format(password))
+                    return
+                return
+
         if authorization is None:
             logger.info('REJECT REASON: No authorization header supplied: %s', request.headers)
             self.reject('No authorization header supplied. You must supply a basic authentication header.')
