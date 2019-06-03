@@ -5,7 +5,6 @@ import random
 import uuid
 
 import universe
-from gym.utils import reraise
 from universe import error, pyprofile, rewarder, spaces, twisty, vectorized, vncdriver
 from universe import remotes as remotes_module
 from universe.envs import diagnostics
@@ -271,7 +270,9 @@ class VNCEnv(vectorized.Env):
             try:
                 self.vnc_session.connect(**kwargs)
             except TypeError as e:
-                reraise(suffix="(HINT: this error was while passing arguments to the VNCSession driver: {})".format(kwargs))
+                raise TypeError('''
+                    (HINT: this error was while passing arguments to the VNCSession driver: {})
+                    '''.format(kwargs))
 
             # TODO: name becomes index:pod_id
             # TODO: never log index, just log name
