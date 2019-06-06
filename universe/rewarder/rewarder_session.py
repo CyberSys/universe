@@ -228,16 +228,16 @@ class RewarderSession(object):
                 self.errors.clear()
         return errors
 
-    def reset(self, seed=None, env_id=None, wrapper=None, logging_dir=None):
+    def reset(self, seed=None, env_id=None, wrapper=None, logging_dir=None, alpha=None):
         with self.lock:
             for i, reward_buffer in self.reward_buffers.items():
                 reward_buffer.mask()
-        reactor.callFromThread(self._reset, seed=seed, env_id=env_id, wrapper=wrapper, logging_dir=logging_dir)
+        reactor.callFromThread(self._reset, seed=seed, env_id=env_id, wrapper=wrapper, logging_dir=logging_dir, alpha=alpha)
 
-    def _reset(self, seed=None, env_id=None, wrapper=None, logging_dir=None):
+    def _reset(self, seed=None, env_id=None, wrapper=None, logging_dir=None, alpha=None):
         with self.lock:
             for client in self.clients.values():
-                d = self._send_env_reset(client, seed=seed, env_id=env_id, wrapper=wrapper, logging_dir=logging_dir)
+                d = self._send_env_reset(client, seed=seed, env_id=env_id, wrapper=wrapper, logging_dir=logging_dir, alpha=alpha)
                 # Total hack to capture the variable in the closure
                 def callbacks(client):
                     def success(reply): pass
@@ -247,10 +247,10 @@ class RewarderSession(object):
                 d.addCallback(success)
                 d.addErrback(fail)
 
-    def _send_env_reset(self, client, seed=None, episode_id=None, env_id=None, wrapper=None, logging_dir=None):
+    def _send_env_reset(self, client, seed=None, episode_id=None, env_id=None, wrapper=None, logging_dir=None, alpha=None):
         if episode_id is None:
             episode_id = client.factory.env_status.episode_id
-        logger.info('[%s] Sending reset for env_id=%s fps=%s episode_id=%s wrapper=%s logging_dir=%s', client.factory.label, client.factory.arg_env_id, client.factory.arg_fps, episode_id, wrapper, logging_dir)
+        logger.info('[%s] Sending reset for env_id=%s fps=%s episode_id=%s wrapper=%s logging_dir=%s alpha=%s', client.factory.label, client.factory.arg_env_id, client.factory.arg_fps, episode_id, wrapper, logging_dir, alpha)
         return client.send_reset(
             env_id=client.factory.arg_env_id if env_id is None else env_id,
             seed=seed,
@@ -258,6 +258,7 @@ class RewarderSession(object):
             episode_id=episode_id,
             wrapper=wrapper,
             logging_dir=logging_dir,
+            alpha=alpha,
         )
 
     def pop(self, warn=True, peek_d=None):
