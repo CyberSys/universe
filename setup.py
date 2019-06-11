@@ -10,6 +10,8 @@ setup(name='universe',
                 if package.startswith('universe')],
       install_requires=[
           'autobahn>=0.16.0',
+          'docker[ssh] >= 3.7.0, < 4.0',
+          'requests >= 2.6.1, != 2.11.0, != 2.12.2, != 2.18.0, < 2.21',
           'fastzbarlight>=0.0.13',
           'go-vncdriver @ git+https://github.com/jbragg/go-vncdriver.git@521815d#egg=go-vncdriver-0.4.20',
           'gym>=0.8.1,<0.10.10',
