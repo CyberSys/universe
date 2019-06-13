@@ -128,19 +128,7 @@
             }
         },
         "AWSRegionArch2AMI" : {
-          "us-east-1"        : {"PV64" : "ami-2a69aa47", "HVM64" : "ami-6869aa05", "HVMG2" : "ami-a41a3fb3"},
-          "us-west-2"        : {"PV64" : "ami-7f77b31f", "HVM64" : "ami-7172b611", "HVMG2" : "ami-caf253aa"},
-          "us-west-1"        : {"PV64" : "ami-a2490dc2", "HVM64" : "ami-31490d51", "HVMG2" : "ami-00347e60"},
-          "eu-west-1"        : {"PV64" : "ami-4cdd453f", "HVM64" : "ami-f9dd458a", "HVMG2" : "ami-e2f7bd91"},
-          "eu-central-1"     : {"PV64" : "ami-6527cf0a", "HVM64" : "ami-ea26ce85", "HVMG2" : "ami-d2ff04bd"},
-          "ap-northeast-1"   : {"PV64" : "ami-3e42b65f", "HVM64" : "ami-374db956", "HVMG2" : "ami-4c78d52d"},
-          "ap-northeast-2"   : {"PV64" : "NOT_SUPPORTED", "HVM64" : "ami-2b408b45", "HVMG2" : "NOT_SUPPORTED"},
-          "ap-southeast-1"   : {"PV64" : "ami-df9e4cbc", "HVM64" : "ami-a59b49c6", "HVMG2" : "ami-f3f95990"},
-          "ap-southeast-2"   : {"PV64" : "ami-63351d00", "HVM64" : "ami-dc361ebf", "HVMG2" : "ami-3a122e59"},
-          "ap-south-1"       : {"PV64" : "NOT_SUPPORTED", "HVM64" : "ami-ffbdd790", "HVMG2" : "ami-21a7d34e"},
-          "us-east-2"        : {"PV64" : "NOT_SUPPORTED", "HVM64" : "ami-f6035893", "HVMG2" : "NOT_SUPPORTED"},
-          "sa-east-1"        : {"PV64" : "ami-1ad34676", "HVM64" : "ami-6dd04501", "HVMG2" : "NOT_SUPPORTED"},
-          "cn-north-1"       : {"PV64" : "ami-77559f1a", "HVM64" : "ami-8e6aa0e3", "HVMG2" : "NOT_SUPPORTED"}
+          "us-east-2"        : {"PV64" : "NOT_SUPPORTED", "HVM64" : "ami-0ebbf2179e615c338", "HVMG2" : "NOT_SUPPORTED"}
         },
         "VpcCidrs": {
             "pubsubnet1": {
@@ -516,9 +504,9 @@
                             [
                                 "#!/bin/sh\n",
                                 "sudo yum update -y\n",
-                                "curl -sSL https://get.docker.com/ | sh\n",
+                                "sudo amazon-linux-extras install docker -y\n",
                                 "sed -i 's/OPTIONS=\"/OPTIONS=\"-H tcp:\\/\\/0\\.0\\.0\\.0:2375 -H unix:\\/\\/\\/var\\/run\\/docker\\.sock /' /etc/sysconfig/docker\n",
-                                "sudo /etc/init.d/docker start\n",
+                                "sudo service docker start\n",
                                 "sudo usermod -aG docker ec2-user\n",
                                 "\n",
                                 "export LOCAL_IP=$(wget -qO- http://169.254.169.254/latest/meta-data/local-ipv4)\n",
@@ -717,7 +705,7 @@
                             [
                                 "#!/bin/sh\n",
                                 "sudo yum update\n",
-                                "curl -sSL https://get.docker.com/ | sh\n",
+                                "sudo amazon-linux-extras install docker -y\n",
                                 "export LOCAL_IP=$(wget -qO- http://169.254.169.254/latest/meta-data/local-ipv4)\n",
                                 "sed -i \"s/OPTIONS=\\\"/OPTIONS=\\\"--cluster-store consul:\\/\\/",
                                 {
@@ -728,7 +716,7 @@
                                 },
                                 ":8500 --cluster-advertise=$LOCAL_IP:2375 -H tcp:\\/\\/0\\.0\\.0\\.0:2375 -H unix:\\/\\/\\/var\\/run\\/docker\\.sock /\" /etc/sysconfig/docker\n",
 
-                                "sudo /etc/init.d/docker start\n",
+                                "sudo service docker start\n",
                                 "sudo usermod -aG docker ec2-user\n",
                                 "\n",
 
@@ -816,6 +804,28 @@
                             "Action": "elasticloadbalancing:*",
                             "Effect": "Allow",
                             "Resource": "*"
+                        },
+                        {
+                            "Action": [
+                                "s3:PutObject"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                                "arn:aws:s3:::universe-human-*",
+                                "arn:aws:s3:::universe-human-*/*",
+                                "arn:aws:s3:::universe-human-*/*/*",
+                                "arn:aws:s3:::universe-human-*/*/*/*",
+                                "arn:aws:s3:::universe-human-*/*/*/*/*"
+                            ]
+                        },
+                        {
+                            "Action": [
+                                "s3:GetObject"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": [
+                                "arn:aws:s3:::universe-keys/*"
+                            ]
                         }
                     ],
                     "Version": "2012-10-17"

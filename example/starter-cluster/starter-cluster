@@ -76,7 +76,7 @@ def docker_cli(host, local_port, remote_path='localhost:4000',
             break
     logger.debug('SSH tunnel ready [pid: %s]', ssh_tunnel.pid)
     try:
-        yield docker.Client(base_url='localhost:{}'.format(local_port))
+        yield docker.APIClient(base_url='localhost:{}'.format(local_port))
     finally:
         logger.debug('SSH tunnel terminating')
         ssh_tunnel.terminate()
@@ -92,7 +92,7 @@ def get_compose_file(runtime):
     return os.path.join(dir_path, 'gen', runtime, 'docker-compose.yaml')
 
 
-def build_compose(cli, runtime, n):
+def build_compose(cli, runtime, n, privkey=None, fullchain=None):
     spec = universe.runtime_spec(runtime)
     expose = [VNC_PORT-1, VNC_PORT, REWARDER_PORT-1, REWARDER_PORT]
     usable_ports = get_ports(cli, len(expose) * n)
@@ -112,6 +112,12 @@ def build_compose(cli, runtime, n):
             service['ipc'] = spec.host_config['ipc_mode']
 
         service['cpu_shares'] = int(math.ceil(spec.default_params.get('cpu', 4)))
+        if privkey is not None or fullchain is not None:
+            service['environment'] = dict()
+            if privkey is not None:
+                service['environment']['s3_privkey'] = privkey
+            if fullchain is not None:
+                service['environment']['s3_fullchain'] = fullchain
 
         service['ports'] = ['{host}:{container}'.format(container=port, host=usable_ports[i*len(expose)+j])
                             for j, port in enumerate(expose)]
@@ -159,8 +165,8 @@ class Stack(object):
         self.worker_asg = outputs['ASGName']
 
 
-def get_stack(name):
-    client = boto3.client('cloudformation')
+def get_stack(name, region_name):
+    client = boto3.client('cloudformation', region_name=region_name)
     response = client.describe_stacks(StackName=name)
     if len(response['Stacks']) == 0:
         raise Exception('Failed to find CloudFormation stack {}'.format(name))
@@ -168,10 +174,10 @@ def get_stack(name):
     return Stack(response['Stacks'][0])
 
 
-def get_worker_instances(stack_name):
+def get_worker_instances(stack_name, region_name):
     instances = {}
 
-    client = boto3.client('ec2')
+    client = boto3.client('ec2', region_name=region_name)
     response = client.describe_instances(
         Filters=[
             {
@@ -242,14 +248,20 @@ def cli(verbose):
               help='Runtime ID to start. (See universe/runtimes/__init__ for a starting list)')
 @click.option('-n', default=1,
               help='Number of environments to start')
-def start(stack_name, port, key_path, runtime, n):
-    stack = get_stack(stack_name)
+@click.option('--region-name', 'region_name',
+              help='Region name')
+@click.option('--privkey',
+              help='Private key location, like s3://BUCKET/key.pem')
+@click.option('--fullchain',
+              help='Certificate location, like s3://BUCKET/cert.pem')
+def start(stack_name, port, key_path, runtime, n, region_name, privkey, fullchain):
+    stack = get_stack(stack_name, region_name=region_name)
     with docker_cli(stack.docker_ip, port, key_path=key_path) as cli:
-        filepath = build_compose(cli, runtime, n)
+        filepath = build_compose(cli, runtime, n, privkey, fullchain)
         start_compose(cli, filepath)
 
         containers = get_runtime_containers(cli, runtime)
-        instances = get_worker_instances(stack.name)
+        instances = get_worker_instances(stack.name, region_name=region_name)
 
         endpoints = []
         for name, container in containers.items():
@@ -258,8 +270,9 @@ def start(stack_name, port, key_path, runtime, n):
                     vnc_port = port['PublicPort']
                 elif port['PrivatePort'] == REWARDER_PORT:
                     rewarder_port = port['PublicPort']
-            if container['host'] in instances:
-                host_ip = instances[container['host']]['public_ip']
+            container_host_ip = '.'.join(container['host'].split('.')[:4])
+            if container_host_ip in instances:
+                host_ip = instances[container_host_ip]['public_ip']
                 endpoints.append(
                     'vnc://{}:{}+{}'.format(host_ip, vnc_port, rewarder_port))
             else:
@@ -281,8 +294,10 @@ def start(stack_name, port, key_path, runtime, n):
               help='Path to private key for SSH connection to docker host')
 @click.option('--runtime', default='flashgames',
               help='Runtime ID to stop. (See universe/runtimes/__init__ for a starting list)')
-def stop(stack_name, port, key_path, runtime):
-    stack = get_stack(stack_name)
+@click.option('--region-name', 'region_name',
+              help='Region name')
+def stop(stack_name, port, key_path, runtime, region_name):
+    stack = get_stack(stack_name, region_name=region_name)
     with docker_cli(stack.docker_ip, port, key_path=key_path) as cli:
         filepath = get_compose_file(runtime)
         stop_compose(cli, filepath)
