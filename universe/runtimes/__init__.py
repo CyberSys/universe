@@ -17,6 +17,20 @@ register_runtime(
 )
 
 register_runtime(
+    id='gym-core-human',
+    kind='docker',
+    image=docker_repo + '/universe-human.gym-core:{}'.format(spec['gym-core-human']['tag']),
+    default_params={'cpu': 1.9},
+)
+
+register_runtime(
+    id='gym-core-human-tf',
+    kind='docker',
+    image=docker_repo + '/universe-human.gym-core-tf:{}'.format(spec['gym-core-human-tf']['tag']),
+    default_params={'cpu': 1.9},
+)
+
+register_runtime(
     id='flashgames',
     kind='docker',
     image=docker_repo + '/universe.flashgames:{}'.format(spec['flashgames']['tag']),

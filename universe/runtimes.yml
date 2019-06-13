@@ -4,3 +4,7 @@ gym-core:
   tag: 0.20.6
 world-of-bits:
   tag: 0.20.0
+gym-core-human:
+  tag: 0.0.5
+gym-core-human-tf:
+  tag: 0.0.2
