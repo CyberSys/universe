@@ -228,24 +228,28 @@ class RewarderSession(object):
                 self.errors.clear()
         return errors
 
-    def reset(self, seed=None, env_id=None, wrapper=None, logging_dir=None, alpha=None):
+    def reset(self, seed=None, env_id=None, wrapper=None, logging_dir=None, alpha=None, client_id=None):
+        if client_id is not None and client_id not in self.reward_buffers:
+            logger.warn('WARNING: Attempting to reset client id:{} that does not exist.'.format(client_id))
         with self.lock:
             for i, reward_buffer in self.reward_buffers.items():
-                reward_buffer.mask()
-        reactor.callFromThread(self._reset, seed=seed, env_id=env_id, wrapper=wrapper, logging_dir=logging_dir, alpha=alpha)
+                if client_id is None or i == client_id:
+                    reward_buffer.mask()
+        reactor.callFromThread(self._reset, seed=seed, env_id=env_id, wrapper=wrapper, logging_dir=logging_dir, alpha=alpha, id=id)
 
-    def _reset(self, seed=None, env_id=None, wrapper=None, logging_dir=None, alpha=None):
+    def _reset(self, seed=None, env_id=None, wrapper=None, logging_dir=None, alpha=None, client_id=None):
         with self.lock:
-            for client in self.clients.values():
-                d = self._send_env_reset(client, seed=seed, env_id=env_id, wrapper=wrapper, logging_dir=logging_dir, alpha=alpha)
-                # Total hack to capture the variable in the closure
-                def callbacks(client):
-                    def success(reply): pass
-                    def fail(reason): client.factory.record_error(reason)
-                    return success, fail
-                success, fail = callbacks(client)
-                d.addCallback(success)
-                d.addErrback(fail)
+            for i, client in self.clients.items():
+                if client_id is None or i == client_id:
+                    d = self._send_env_reset(client, seed=seed, env_id=env_id, wrapper=wrapper, logging_dir=logging_dir, alpha=alpha)
+                    # Total hack to capture the variable in the closure
+                    def callbacks(client):
+                        def success(reply): pass
+                        def fail(reason): client.factory.record_error(reason)
+                        return success, fail
+                    success, fail = callbacks(client)
+                    d.addCallback(success)
+                    d.addErrback(fail)
 
     def _send_env_reset(self, client, seed=None, episode_id=None, env_id=None, wrapper=None, logging_dir=None, alpha=None):
         if episode_id is None:
