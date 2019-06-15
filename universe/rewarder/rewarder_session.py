@@ -241,7 +241,7 @@ class RewarderSession(object):
             for i, reward_buffer in self.reward_buffers.items():
                 if client_id is None or i == client_id:
                     reward_buffer.mask()
-        reactor.callFromThread(self._reset, seed=seed, env_id=env_id, wrapper=wrapper, logging_dir=logging_dir, alpha=alpha, id=id)
+        reactor.callFromThread(self._reset, seed=seed, env_id=env_id, wrapper=wrapper, logging_dir=logging_dir, alpha=alpha, client_id=client_id)
 
     def _reset(self, seed=None, env_id=None, wrapper=None, logging_dir=None, alpha=None, client_id=None):
         with self.lock:
