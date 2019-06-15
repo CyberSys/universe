@@ -25,5 +25,6 @@ setup(name='universe',
       tests_require=['pytest'],
       extras_require={
           'atari': 'gym[atari]',
+          'ssl': 'pyOpenSSL>=19.0.0',
       }
       )

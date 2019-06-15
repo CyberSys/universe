@@ -62,7 +62,7 @@ class RewarderSession(object):
                     reactor.callFromThread(client.close, reason=reason)
 
     def connect(self, name, address, label, password, env_id=None, seed=None, fps=60,
-                start_timeout=None, observer=False, skip_network_calibration=False):
+                start_timeout=None, observer=False, skip_network_calibration=False, use_ssl=False):
         if name in self.reward_buffers:
             self.close(name, reason='closing previous connection to reconnect with the same name')
 
@@ -87,6 +87,7 @@ class RewarderSession(object):
                                password=password,
                                observer=observer,
                                skip_network_calibration=skip_network_calibration,
+                               use_ssl=use_ssl,
         )
         self.i += 1
         return network
@@ -103,9 +104,14 @@ class RewarderSession(object):
                  label, password, start_timeout,
                  observer, skip_network_calibration,
                  attempt=0, elapsed_sleep_time=0,
+                 use_ssl=False,
     ):
-        endpoint = endpoints.clientFromString(reactor, 'tcp:'+address)
-        factory = websocket.WebSocketClientFactory('ws://'+address)
+        if use_ssl:
+            endpoint = endpoints.clientFromString(reactor, 'tls:'+address)
+            factory = websocket.WebSocketClientFactory('wss://'+address)
+        else:
+            endpoint = endpoints.clientFromString(reactor, 'tcp:'+address)
+            factory = websocket.WebSocketClientFactory('ws://'+address)
         factory.protocol = rewarder_client.RewarderClient
 
         assert password, "Missing password: {} for rewarder session".format(password)
